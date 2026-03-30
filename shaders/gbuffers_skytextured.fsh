@@ -1,8 +1,8 @@
 #version 330 compatibility
 
 uniform sampler2D gtexture;
-
-uniform float alphaTestRef = 0.1;
+uniform float frameTimeCounter;
+uniform float nightVision;
 
 in vec2 texcoord;
 in vec4 glcolor;
@@ -11,8 +11,26 @@ in vec4 glcolor;
 layout(location = 0) out vec4 color;
 
 void main() {
-	color = texture(gtexture, texcoord) * glcolor;
-	if (color.a < alphaTestRef) {
-		discard;
-	}
+  float t = frameTimeCounter;
+  float active = 1.0 - clamp(nightVision, 0.0, 1.0);
+
+  float cycle = fract(t / 30.0);
+  float bloodIntensity = smoothstep(0.7, 0.9, cycle) * (1.0 - smoothstep(0.95, 1.0, cycle));
+  bloodIntensity *= active;
+
+  float shift = 0.05 * active;
+  if (bloodIntensity > 0.1) shift += 0.1 * sin(t * 100.0);
+
+  vec3 rgb;
+  rgb.r = texture(gtexture, texcoord + vec2(shift, 0.0)).r;
+  rgb.g = texture(gtexture, texcoord).g;
+  rgb.b = texture(gtexture, texcoord - vec2(shift, 0.0)).b;
+
+  vec3 bloodRed = vec3(0.8, 0.0, 0.0);
+  rgb = mix(rgb, bloodRed, bloodIntensity);
+
+  float noise = fract(sin(dot(gl_FragCoord.xy + t, vec2(12.9898, 78.233))) * 43758.5453);
+  rgb = mix(rgb, vec3(noise), 0.1 * active);
+
+  color = vec4(rgb * glcolor.rgb, texture(gtexture, texcoord).a * glcolor.a);
 }

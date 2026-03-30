@@ -1,12 +1,8 @@
 #version 330 compatibility
 
-uniform sampler2D lightmap;
 uniform sampler2D gtexture;
-uniform vec4 entityColor;
+uniform float frameTimeCounter;
 
-uniform float alphaTestRef = 0.1;
-
-in vec2 lmcoord;
 in vec2 texcoord;
 in vec4 glcolor;
 
@@ -14,10 +10,20 @@ in vec4 glcolor;
 layout(location = 0) out vec4 color;
 
 void main() {
-	color = texture(gtexture, texcoord) * glcolor;
-	color.rgb = mix(color.rgb, entityColor.rgb, entityColor.a);
-	color *= texture(lightmap, lmcoord);
-	if (color.a < alphaTestRef) {
-		discard;
-	}
+  float t = frameTimeCounter;
+
+  vec2 offset1 = vec2(sin(t * 10.0) * 0.02, 0.0);
+  vec2 offset2 = vec2(0.0, cos(t * 10.0) * 0.02);
+  
+  vec4 mainBase = texture(gtexture, texcoord);
+  vec4 ghost1 = texture(gtexture, texcoord + offset1);
+  vec4 ghost2 = texture(gtexture, texcoord - offset2);
+  
+  vec3 finalRGB = mix(mainBase.rgb, ghost1.rgb, 0.4);
+  finalRGB = mix(finalRGB, ghost2.rgb, 0.4);
+
+  finalRGB *= 1.0 + sin(t * 20.0) * 0.3;
+
+  color = vec4(finalRGB * glcolor.rgb, mainBase.a);
+  if (color.a < 0.1) discard;
 }

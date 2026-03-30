@@ -1,11 +1,8 @@
 #version 330 compatibility
 
-uniform sampler2D lightmap;
 uniform sampler2D gtexture;
+uniform float frameTimeCounter;
 
-uniform float alphaTestRef = 0.1;
-
-in vec2 lmcoord;
 in vec2 texcoord;
 in vec4 glcolor;
 
@@ -13,9 +10,19 @@ in vec4 glcolor;
 layout(location = 0) out vec4 color;
 
 void main() {
-	color = texture(gtexture, texcoord) * glcolor;
-	color *= texture(lightmap, lmcoord);
-	if (color.a < alphaTestRef) {
-		discard;
-	}
+  float t = frameTimeCounter;
+
+  vec2 jitter = vec2(
+    sin(t * 80.0) * 0.005,
+    cos(t * 75.0) * 0.005
+  );
+
+  vec3 rgb;
+  rgb.r = texture(gtexture, texcoord + jitter).r;
+  rgb.g = texture(gtexture, texcoord).g;
+  rgb.b = texture(gtexture, texcoord - jitter).b;
+  
+  rgb *= 1.0 + sin(t * 10.0) * 0.2;
+
+  color = vec4(rgb * glcolor.rgb, 1.0);
 }
