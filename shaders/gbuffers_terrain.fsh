@@ -2,8 +2,9 @@
 
 uniform sampler2D lightmap;
 uniform sampler2D gtexture;
-
-uniform float alphaTestRef = 0.1;
+uniform float frameTimeCounter;
+uniform float nightVision; 
+uniform float blindness;
 
 in vec2 lmcoord;
 in vec2 texcoord;
@@ -13,9 +14,15 @@ in vec4 glcolor;
 layout(location = 0) out vec4 color;
 
 void main() {
-	color = texture(gtexture, texcoord) * glcolor;
-	color *= texture(lightmap, lmcoord);
-	if (color.a < alphaTestRef) {
-		discard;
-	}
+  float t = frameTimeCounter;
+  vec2 uv = texcoord;
+  float sobriety = clamp(nightVision + blindness, 0.0, 1.0);
+  float addictionFactor = 1.0 - sobriety;
+  float waveX = sin(uv.y * 20.0 + t * 5.0) * 0.02 * addictionFactor;
+  float waveY = cos(uv.x * 20.0 + t * 4.0) * 0.02 * addictionFactor;
+  uv += vec2(waveX, waveY);
+  vec4 tex = texture(gtexture, uv) * glcolor;
+  tex *= texture(lightmap, lmcoord);
+  if (tex.a < 0.1) discard;
+  color = tex;
 }
