@@ -1,5 +1,20 @@
 #version 330 compatibility
 
+// #define ALWAYS_SOBER
+// #define LESS_INTENSE
+
+#ifdef ALWAYS_SOBER
+  const bool alwaysSober = true;
+#else
+  const bool alwaysSober = false;
+#endif
+
+#ifdef LESS_INTENSE
+  const float intensityMultiplier = 0.01;
+#else
+  const float intensityMultiplier = 1.0;
+#endif
+
 uniform sampler2D gcolor; 
 uniform sampler2D gdepthtex; 
 uniform mat4 gbufferProjectionInverse; 
@@ -28,6 +43,13 @@ void main() {
   float t = frameTimeCounter;
 
   float active = 1.0 - clamp(nightVision + blindness, 0.0, 1.0);
+  if (alwaysSober) active = 0.0;
+  active *= intensityMultiplier;
+
+  if (active < 0.0001) {
+    color = texture(gcolor, texcoord);
+    return;
+  }
 
   float chaosBase = clamp(1.0 - (dist / 35.0), 0.0, 1.0);
   float chaos = (0.8 + (0.2 * pow(chaosBase, 1.0))) * active; 
@@ -67,8 +89,8 @@ void main() {
 
   float res1 = mix(1000.0, 8.0, chaos); 
   float res2 = mix(1000.0, 12.0, chaos); 
-  vec2 pUV = (chaos > 0.001) ? (floor(uv * res1) / res1) : uv;
-  pUV = (chaos > 0.001) ? (floor(pUV * res2) / res2) : pUV;
+  vec2 pUV = floor(uv * res1) / res1;
+  pUV = floor(pUV * res2) / res2;
   pUV += 0.5;
 
   float shift = 0.1 * chaos;
