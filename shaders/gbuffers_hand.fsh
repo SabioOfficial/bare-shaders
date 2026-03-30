@@ -2,6 +2,7 @@
 
 uniform sampler2D gtexture;
 uniform float frameTimeCounter;
+uniform float nightVision;
 
 in vec2 texcoord;
 in vec4 glcolor;
@@ -11,18 +12,24 @@ layout(location = 0) out vec4 color;
 
 void main() {
   float t = frameTimeCounter;
+  float active = 1.0 - clamp(nightVision, 0.0, 1.0);
 
-  vec2 jitter = vec2(
-    sin(t * 80.0) * 0.005,
-    cos(t * 75.0) * 0.005
-  );
+  float noise = fract(sin(dot(texcoord + t, vec2(12.9898, 78.233))) * 43758.5453);
+  if (active > 0.5 && noise > 0.8) {
+    discard;
+  }
 
-  vec3 rgb;
-  rgb.r = texture(gtexture, texcoord + jitter).r;
-  rgb.g = texture(gtexture, texcoord).g;
-  rgb.b = texture(gtexture, texcoord - jitter).b;
-  
-  rgb *= 1.0 + sin(t * 10.0) * 0.2;
+  vec4 tex = texture(gtexture, texcoord);
+  vec3 rgb = tex.rgb * glcolor.rgb;
 
-  color = vec4(rgb * glcolor.rgb, 1.0);
+  if (active > 0.5) {
+    rgb.r = texture(gtexture, texcoord + vec2(0.01 * sin(t * 10.0), 0.0)).r;
+    rgb.b = texture(gtexture, texcoord - vec2(0.01 * cos(t * 10.0), 0.0)).b;
+    if (fract(t * 2.0) > 0.9) {
+      rgb = 1.0 - rgb;
+    }
+    rgb.g += sin(t * 20.0) * 0.2;
+  }
+
+  color = vec4(rgb, tex.a * glcolor.a);
 }
